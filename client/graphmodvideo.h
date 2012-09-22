@@ -1,5 +1,9 @@
 #pragma once
 
+#include <QSize>
+#include <QByteArray>
+#include <QImage>
+
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
@@ -11,9 +15,12 @@ class GraphModVideo
 {
 public:
     GraphModVideo();
+    ~GraphModVideo();
     bool setupFormat(const char* format);
-    bool setupVideoStream(int sWidth, int sHeight, int dWidth, int dHeight,
+    bool setupVideoStream(QSize srcSize, QSize dstSize,
                           int bitrate, int frameRate = 20);
+
+    QByteArray getSendData(const QImage& pix);
 
 private:
     AVOutputFormat  *outFmt;

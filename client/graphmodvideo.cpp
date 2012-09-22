@@ -11,6 +11,10 @@ GraphModVideo::GraphModVideo() :
     av_register_all();
 }
 
+GraphModVideo::~GraphModVideo()
+{
+}
+
 bool GraphModVideo::setupFormat(const char *format)
 {
     int ret;
@@ -33,9 +37,10 @@ bool GraphModVideo::setupFormat(const char *format)
     return true;
 }
 
-bool GraphModVideo::setupVideoStream(int sWidth, int sHeight, int dWidth, int dHeight,
+bool GraphModVideo::setupVideoStream(QSize srcSize, QSize dstSize,
                                      int bitrate, int frameRate)
 {
+    int ret;
     AVCodecContext  *codecCtx;
     AVCodec         *vCodec;
 
@@ -51,8 +56,8 @@ bool GraphModVideo::setupVideoStream(int sWidth, int sHeight, int dWidth, int dH
 
     codecCtx->bit_rate  = bitrate;
 
-    codecCtx->width     = dWidth;
-    codecCtx->height    = dHeight;
+    codecCtx->width     = dstSize.width();
+    codecCtx->height    = dstSize.height();
 
     codecCtx->time_base.den = frameRate;
     codecCtx->time_base.num = 1;
@@ -71,10 +76,31 @@ bool GraphModVideo::setupVideoStream(int sWidth, int sHeight, int dWidth, int dH
         return false;
     }
 
-    frameRgb = new dFrame(PIX_FMT_RGB32, sWidth, sHeight);
-    frameYuv = new dFrame(PIX_FMT_YUV420P, dWidth, dHeight);
+    frameRgb = new dFrame(PIX_FMT_RGB32, srcSize.width(), srcSize.height());
+    frameYuv = new dFrame(PIX_FMT_YUV420P, dstSize.width(), dstSize.height());
+
+    swsCtx = sws_getCachedContext(swsCtx, srcSize.width(), srcSize.height(), frameRgb->pixfmt,
+                                  dstSize.width(), dstSize.height(), frameYuv->pixfmt, SWS_BICUBIC, NULL, NULL, NULL);
 
     return true;
+}
+
+QByteArray GraphModVideo::getSendData(const QImage &pix)
+{
+    int size, gotPacket;
+    AVPacket pkt;
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
+
+    const void *imgBytes = pix.bits();
+    sws_scale(swsCtx, (const uint8_t* const*)&imgBytes, frameRgb->frame.linesize,
+              0, frameYuv->frame.height, frameYuv->frame.data, frameYuv->frame.linesize);
+
+    size = avcodec_encode_video2(fmt->streams[0]->codec, &pkt, &frameYuv->frame, &gotPacket);
+    if (size >= 0) {
+
+    }
 }
 
 
