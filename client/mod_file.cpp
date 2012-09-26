@@ -38,17 +38,24 @@ void ModFile::incomeMessage(const QByteArray &data)
         sendData(send);
 //        client_->sendLevelTwo(mode_, adminId_, send);
 
-        break;
-    }
+        break; }
     case FMOD_DOWNINFO:
 
         break;
     case FMOD_DOWNLOAD:
 
         break;
-    case FMOD_RENAME:
+    case FMOD_RENAME: {
+        int sourceSize = fromBytes<quint16>(data.mid(1, 2));
+        QString source = QString::fromUtf8(data.mid(3, sourceSize));
+        int destSize   = fromBytes<quint16>(data.mid(sourceSize+3, 2));
+        QString dest   = QString::fromUtf8(data.mid(sourceSize+5, destSize));
 
-        break;
+        qDebug() << dir_.absoluteFilePath(source) << dir_.absoluteFilePath(dest);
+
+        QFile::rename(dir_.absoluteFilePath(source), dir_.absoluteFilePath(dest));
+
+        break; }
     case FMOD_DEL:
 
         break;
@@ -58,8 +65,35 @@ void ModFile::incomeMessage(const QByteArray &data)
     case FMOD_MOVETO:
 
         break;
-    case FMOD_READY:
 
+    case FMOD_DOWNREQ: {
+
+        qint16 fileNameSize = fromBytes<quint16>(data.mid(1, 2));
+        QString source = QString::fromUtf8(data.mid(3, fileNameSize));
+        qDebug() << "Download request" << source;
+        _f.setFileName(source);
+        if (!_f.open(QIODevice::ReadOnly))
+        {
+            return;
+        }
+
+        QByteArray resp;
+        resp.append(FMOD_DOWNINFO);
+        resp.append(toBytes(fileNameSize));
+        resp.append(source.toUtf8());
+        resp.append((quint8)42);
+        resp.append(toBytes((quint32)_f.size()));
+        sendData(resp);
+
+        break;}
+    case FMOD_READY:
+        QByteArray currData=_f.read(60000);
+        QByteArray resp;
+        resp.append(FMOD_DOWNLOAD);
+        resp.append((quint8)42);
+        resp.append(toBytes(  (quint16)(currData.size()) ));
+        resp.append(currData);
+        sendData(resp);
         break;
     }
 }

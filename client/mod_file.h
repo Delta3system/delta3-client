@@ -2,6 +2,7 @@
 
 #include "mod_abstract.h"
 #include <QDir>
+#include <QFile>
 
 namespace delta3
 {
@@ -26,6 +27,7 @@ public:
         FMOD_DEL        = 7,
         FMOD_COPYTO     = 8,
         FMOD_MOVETO     = 9,
+        FMOD_DOWNREQ    = 10,
         FMOD_READY      = 101
     };
 
@@ -40,6 +42,7 @@ public slots:
 
 private:
     QDir dir_;
+    QFile _f;
     
 };
 
